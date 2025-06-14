@@ -318,7 +318,8 @@ async function retrieveRepository() {
         for await (const chunk of ipfs.cat(ipfsHash)) {
             chunks.push(chunk);
         }
-        const encryptedStringFromIpfs = Buffer.from(chunks[0]).toString('utf8');
+        // const encryptedStringFromIpfs = Buffer.from(chunks[0]).toString('utf8');
+        const encryptedStringFromIpfs = new TextDecoder().decode(chunks[0]);
         const downloadTime = performance.now();
         log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
 
