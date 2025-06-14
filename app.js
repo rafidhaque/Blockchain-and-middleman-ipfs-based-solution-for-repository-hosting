@@ -158,7 +158,8 @@ async function init() {
     log('Initializing...');
     try {
         // Connect to IPFS
-        ipfs = ipfsHttpClient.create({ host: 'localhost', port: '5001', protocol: 'http' });
+        // CORRECTED: Use the variable name "IpfsHttpClient" (capital I)
+        ipfs = IpfsHttpClient.create({ host: 'localhost', port: '5001', protocol: 'http' });
         log('✅ Connected to local IPFS node.');
 
         // Connect to MetaMask (Ethereum)
@@ -172,6 +173,7 @@ async function init() {
             // Connect to the Smart Contract
             if(CONTRACT_ADDRESS === "YOUR_CONTRACT_ADDRESS_HERE" || CONTRACT_ABI.length === 0) {
                 log("🚨 ERROR: Please set your CONTRACT_ADDRESS and CONTRACT_ABI in app.js!");
+                alert("Please set your CONTRACT_ADDRESS and CONTRACT_ABI in app.js!");
                 return;
             }
             contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
@@ -179,9 +181,11 @@ async function init() {
 
         } else {
             log('🚨 ERROR: MetaMask not found! Please install it.');
+            alert("MetaMask not found! Please install it.");
         }
     } catch (error) {
         log(`🚨 Initialization Error: ${error.message}`);
+        console.error(error);
     }
 }
 
@@ -239,13 +243,14 @@ async function submitRepository() {
 
     } catch (error) {
         log(`🚨 SUBMISSION FAILED: ${error.message}`);
+        console.error(error);
     }
 }
 
 // --- 3.4 Repository Retrieval Process ---
 async function retrieveRepository() {
     const ipfsHash = retrieveHashInput.value;
-    const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s); // Filter out empty shares
+    const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s.trim() !== ""); // Filter out empty shares
 
     if (!ipfsHash || shares.length < 2) {
         log('🚨 Please provide an IPFS Hash and at least 2 key shares.');
@@ -295,7 +300,7 @@ async function retrieveRepository() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `decrypted_${ipfsHash}.zip`; // Or original filename if stored
+        a.download = `decrypted_file.zip`;
         a.textContent = `Click here to download your decrypted file`;
         retrievalResultsDiv.innerHTML = '';
         retrievalResultsDiv.appendChild(a);
@@ -306,6 +311,7 @@ async function retrieveRepository() {
 
     } catch (error) {
         log(`🚨 RETRIEVAL FAILED: ${error.message}`);
+        console.error(error);
         if (error.message.includes("Invalid share")) {
              log("   - HINT: This often means the key shares are incorrect or in the wrong order.")
         }
