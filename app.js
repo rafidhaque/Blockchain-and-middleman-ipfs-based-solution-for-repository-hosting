@@ -189,7 +189,9 @@ async function init() {
     }
 }
 
-// --- 3.3 Repository Submission Process ---
+// --- 3.3 Repository Submission Process (DIAGNOSTIC VERSION) ---
+// --- 3.3 Repository Submission Process (FINAL CLEAN VERSION) ---
+// --- 3.3 Repository Submission Process (CORRECT IMPLEMENTATION) ---
 async function submitRepository() {
     const file = fileInput.files[0];
     if (!file) {
@@ -201,56 +203,83 @@ async function submitRepository() {
     const startTime = performance.now();
 
     try {
-        // 1. Client-Side Encryption
-        log('1. Encrypting file...');
-        const fileBuffer = await file.arrayBuffer();
-        const aesKey = CryptoJS.lib.WordArray.random(256 / 8); // 256-bit key
-        const encrypted = CryptoJS.AES.encrypt(CryptoJS.lib.WordArray.create(fileBuffer), aesKey);
-        const encryptionTime = performance.now();
-        log(`   - Encryption took ${(encryptionTime - startTime).toFixed(2)} ms.`);
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const base64String = event.target.result.split(',')[1];
 
-        // 2. IPFS Upload
-        log('2. Uploading encrypted data to IPFS...');
-        const encryptedData = new Uint8Array(Buffer.from(encrypted.toString(), 'base64'));
-        const { cid } = await ipfs.add(encryptedData);
-        const ipfsHash = cid.toString();
-        const uploadTime = performance.now();
-        log(`   - IPFS upload took ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
-        log(`   - IPFS Hash (CID): ${ipfsHash}`);
-        ipfsHashResult.textContent = ipfsHash;
+                // 1. Client-Side Encryption (Correctly Implemented)
+                log('1. Encrypting file with Key and IV...');
+                const aesKey = CryptoJS.lib.WordArray.random(256 / 8); // 32 bytes
+                const iv = CryptoJS.lib.WordArray.random(128 / 8);     // 16 bytes
+                
+                const encrypted = CryptoJS.AES.encrypt(base64String, aesKey, {
+                    iv: iv,
+                    mode: CryptoJS.mode.CBC,
+                    padding: CryptoJS.pad.Pkcs7
+                });
+                const encryptionTime = performance.now();
+                log(`   - Encryption took ${(encryptionTime - startTime).toFixed(2)} ms.`);
 
-        // 3. Key Splitting with SSS
-        log('3. Splitting AES key into 3 shares (k=2)...');
-        const keyHex = CryptoJS.enc.Hex.stringify(aesKey);
-        const shares = secrets.share(keyHex, 3, 2); // n=3, k=2
-        keySharesResult.textContent = `Share 1: ${shares[0]}\nShare 2: ${shares[1]}\nShare 3: ${shares[2]}`;
-        log(`   - Share 1 (for 'middleman'): ${shares[0]}`);
-        log(`   - Share 2 (user saves): ${shares[1]}`);
-        log(`   - Share 3 (user saves): ${shares[2]}`);
+                // 2. IPFS Upload
+                log('2. Uploading encrypted data to IPFS...');
+                const encryptedStringForIpfs = encrypted.toString();
+                const { cid } = await ipfs.add(encryptedStringForIpfs);
+                const ipfsHash = cid.toString();
+                const uploadTime = performance.now();
+                log(`   - IPFS upload took ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
+                log(`   - IPFS Hash (CID): ${ipfsHash}`);
+                ipfsHashResult.textContent = ipfsHash;
 
-        // 4. Blockchain Registration
-        log('4. Registering repository on the blockchain...');
-        const tx = await contract.registerRepository(ipfsHash);
-        log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
-        const receipt = await tx.wait();
-        const confirmationTime = performance.now();
-        log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
-        log(`   - Gas used: ${receipt.gasUsed.toString()}`);
-        log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
+                // 3. Key & IV Bundling and Splitting
+                log('3. Bundling Key+IV and splitting into shares...');
+                const keyHex = CryptoJS.enc.Hex.stringify(aesKey);
+                const ivHex = CryptoJS.enc.Hex.stringify(iv);
+                
+                // BUNDLE THE KEY AND IV TOGETHER INTO ONE SECRET
+                const combinedSecret = keyHex + ivHex;
+                
+                const shares = secrets.share(combinedSecret, 3, 2); // Split the combined secret
+                keySharesResult.textContent = `Share 1: ${shares[0]}\nShare 2: ${shares[1]}\nShare 3: ${shares[2]}`;
+                log(`   - Share 1 (for 'middleman'): ${shares[0]}`);
+                log(`   - Share 2 (user saves): ${shares[1]}`);
+                log(`   - Share 3 (user saves): ${shares[2]}`);
 
-        const totalTime = performance.now() - startTime;
-        log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+                // 4. Blockchain Registration
+                log('4. Registering repository on the blockchain...');
+                const tx = await contract.registerRepository(ipfsHash);
+                log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+                const receipt = await tx.wait();
+                const confirmationTime = performance.now();
+                log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+                log(`   - Gas used: ${receipt.gasUsed.toString()}`);
+                log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
+
+                const totalTime = performance.now() - startTime;
+                log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+            } catch (error) {
+                log(`🚨 SUBMISSION FAILED (inner): ${error.message}`);
+                console.error(error);
+            }
+        };
+        reader.onerror = (error) => {
+            log(`🚨 FILE READ FAILED: ${error}`);
+            console.error(error);
+        };
+        reader.readAsDataURL(file);
 
     } catch (error) {
-        log(`🚨 SUBMISSION FAILED: ${error.message}`);
+        log(`🚨 SUBMISSION FAILED (outer): ${error.message}`);
         console.error(error);
     }
 }
 
-// --- 3.4 Repository Retrieval Process ---
+// --- 3.4 Repository Retrieval Process (FINAL CORRECTED VERSION) ---
+// --- 3.4 Repository Retrieval Process (FINAL CLEAN VERSION) ---
+// --- 3.4 Repository Retrieval Process (CORRECT IMPLEMENTATION) ---
 async function retrieveRepository() {
     const ipfsHash = retrieveHashInput.value;
-    const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s.trim() !== ""); // Filter out empty shares
+    const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s.trim() !== "");
 
     if (!ipfsHash || shares.length < 2) {
         log('🚨 Please provide an IPFS Hash and at least 2 key shares.');
@@ -271,11 +300,17 @@ async function retrieveRepository() {
         }
         log('   - ✅ Access granted.');
         
-        // 2. Key Reconstruction
-        log('2. Reconstructing AES key from shares...');
-        const reconstructedKeyHex = secrets.combine(shares);
-        const aesKey = CryptoJS.enc.Hex.parse(reconstructedKeyHex);
-        log('   - ✅ Key reconstructed successfully.');
+        // 2. Key & IV Reconstruction
+        log('2. Reconstructing and un-bundling Key and IV...');
+        const combinedSecret = secrets.combine(shares);
+        
+        // SPLIT THE RECONSTRUCTED SECRET BACK INTO KEY AND IV
+        const keyHex = combinedSecret.substring(0, 64); // First 64 chars are the 32-byte key
+        const ivHex = combinedSecret.substring(64);      // The rest is the 16-byte IV
+        
+        const reconstructedKey = CryptoJS.enc.Hex.parse(keyHex);
+        const reconstructedIv = CryptoJS.enc.Hex.parse(ivHex);
+        log('   - ✅ Key and IV reconstructed successfully.');
 
         // 3. IPFS Download
         log('3. Downloading encrypted data from IPFS...');
@@ -283,23 +318,25 @@ async function retrieveRepository() {
         for await (const chunk of ipfs.cat(ipfsHash)) {
             chunks.push(chunk);
         }
-        const encryptedData = Buffer.concat(chunks);
-        const encryptedBase64 = encryptedData.toString('base64');
+        const encryptedStringFromIpfs = Buffer.from(chunks[0]).toString('utf8');
         const downloadTime = performance.now();
         log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
 
-        // 4. Decryption
-        log('4. Decrypting file...');
-        const decrypted = CryptoJS.AES.decrypt(encryptedBase64, aesKey);
-        const decryptedArray = new Uint8Array(Buffer.from(CryptoJS.enc.Latin1.stringify(decrypted), 'latin1'));
+        // 4. Decryption (Correctly Implemented)
+        log('4. Decrypting file with Key and IV...');
+        const decrypted = CryptoJS.AES.decrypt(encryptedStringFromIpfs, reconstructedKey, {
+            iv: reconstructedIv,
+            mode: CryptoJS.mode.CBC,
+            padding: CryptoJS.pad.Pkcs7
+        });
+        const decryptedBase64 = decrypted.toString(CryptoJS.enc.Utf8);
         const decryptionTime = performance.now();
         log(`   - Decryption took ${(decryptionTime - downloadTime).toFixed(2)} ms.`);
 
         // 5. Serve file for download
-        const blob = new Blob([decryptedArray], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
+        const fileDataUrl = `data:application/octet-stream;base64,${decryptedBase64}`;
         const a = document.createElement('a');
-        a.href = url;
+        a.href = fileDataUrl;
         a.download = `decrypted_file.zip`;
         a.textContent = `Click here to download your decrypted file`;
         retrievalResultsDiv.innerHTML = '';
@@ -315,9 +352,11 @@ async function retrieveRepository() {
         if (error.message.includes("Invalid share")) {
              log("   - HINT: This often means the key shares are incorrect or in the wrong order.")
         }
+         if (error.message.includes("Malformed UTF-8 data")) {
+             log("   - HINT: This often means the reconstructed key/IV is wrong (wrong shares?).")
+        }
     }
 }
-
 
 // --- Event Listeners ---
 window.addEventListener('load', init);
