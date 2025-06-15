@@ -64,3 +64,16 @@ pre {
     word-wrap: break-word;
     font-family: "Courier New", Courier, monospace;
 }
+
+.button-group {
+    display: flex;
+    gap: 10px; /* Adds space between the buttons */
+}
+
+.danger {
+    background-color: #e74c3c; /* A red color for dangerous actions */
+}
+
+.danger:hover {
+    background-color: #c0392b;
+}

@@ -146,6 +146,12 @@ const keySharesResult = document.getElementById('key-shares-result');
 const retrievalResultsDiv = document.getElementById('retrieval-results');
 const logOutput = document.getElementById('log-output');
 
+const manageHashInput = document.getElementById('manage-hash-input');
+const collaboratorAddressInput = document.getElementById('collaborator-address-input');
+const addCollaboratorBtn = document.getElementById('add-collaborator-btn');
+const removeCollaboratorBtn = document.getElementById('remove-collaborator-btn');
+
+
 // --- Helper function to log messages to the screen ---
 function log(message) {
     console.log(message);
@@ -359,7 +365,68 @@ async function retrieveRepository() {
     }
 }
 
+// --- Access Management Functions ---
+async function addCollaborator() {
+    const ipfsHash = manageHashInput.value;
+    const collaboratorAddress = collaboratorAddressInput.value;
+
+    if (!ipfsHash || !collaboratorAddress) {
+        log('🚨 Please provide a repository IPFS Hash and a Collaborator Address.');
+        return;
+    }
+    if (!ethers.utils.isAddress(collaboratorAddress)) {
+        log('🚨 Invalid Ethereum address provided for collaborator.');
+        return;
+    }
+
+    log(`--- Adding Collaborator ${collaboratorAddress} to ${ipfsHash} ---`);
+    try {
+        const tx = await contract.addCollaborator(ipfsHash, collaboratorAddress);
+        log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+        const receipt = await tx.wait();
+        log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+        log(`   - Gas used for addCollaborator: ${receipt.gasUsed.toString()}`);
+        log(`--- ✅ Collaborator Added Successfully ---`);
+    } catch (error) {
+        log(`🚨 FAILED to add collaborator: ${error.message}`);
+        if(error.message.includes("Caller is not the owner")) {
+            log("   - HINT: Make sure you are connected with the wallet that owns this repository.");
+        }
+    }
+}
+
+async function removeCollaborator() {
+    const ipfsHash = manageHashInput.value;
+    const collaboratorAddress = collaboratorAddressInput.value;
+
+    if (!ipfsHash || !collaboratorAddress) {
+        log('🚨 Please provide a repository IPFS Hash and a Collaborator Address.');
+        return;
+    }
+     if (!ethers.utils.isAddress(collaboratorAddress)) {
+        log('🚨 Invalid Ethereum address provided for collaborator.');
+        return;
+    }
+
+    log(`--- Removing Collaborator ${collaboratorAddress} from ${ipfsHash} ---`);
+    try {
+        const tx = await contract.removeCollaborator(ipfsHash, collaboratorAddress);
+        log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+        const receipt = await tx.wait();
+        log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+        log(`   - Gas used for removeCollaborator: ${receipt.gasUsed.toString()}`);
+        log(`--- ✅ Collaborator Removed Successfully ---`);
+    } catch (error) {
+        log(`🚨 FAILED to remove collaborator: ${error.message}`);
+         if(error.message.includes("Caller is not the owner")) {
+            log("   - HINT: Make sure you are connected with the wallet that owns this repository.");
+        }
+    }
+}
+
 // --- Event Listeners ---
 window.addEventListener('load', init);
 submitBtn.addEventListener('click', submitRepository);
 retrieveBtn.addEventListener('click', retrieveRepository);
+addCollaboratorBtn.addEventListener('click', addCollaborator);
+removeCollaboratorBtn.addEventListener('click', removeCollaborator);
