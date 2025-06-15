@@ -234,6 +234,7 @@ async function submitRepository() {
                 const ipfsHash = cid.toString();
                 const uploadTime = performance.now();
                 log(`   - IPFS upload took ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
+                log(`   - Client-Side Processing Latency ${((encryptionTime - startTime) + (uploadTime - encryptionTime)).toFixed(2)} ms.`);
                 log(`   - IPFS Hash (CID): ${ipfsHash}`);
                 ipfsHashResult.textContent = ipfsHash;
 
