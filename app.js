@@ -2,11 +2,10 @@
 // IMPORTANT: CONFIGURE YOUR CONTRACT DETAILS HERE
 // ===================================================================================
 // 1. Get this from Remix after you deploy your contract
-const CONTRACT_ADDRESS = "0xBc3d2513436CE4097f202a39177Dd4010bB05A34"; 
+const CONTRACT_ADDRESS = "0xf81Fc96Cb1F7Ae469077dA4C27cA30ebf9884d4F"; 
 
 // 2. Get this from the "ABI" button in Remix's compile tab
-const CONTRACT_ABI = [ 
-    // Paste the ABI array from Remix here
+const CONTRACT_ABI = [
 	{
 		"inputs": [
 			{
@@ -21,37 +20,6 @@ const CONTRACT_ABI = [
 			}
 		],
 		"name": "addCollaborator",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			}
-		],
-		"name": "registerRepository",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "_collaboratorAddress",
-				"type": "address"
-			}
-		],
-		"name": "removeCollaborator",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -122,8 +90,39 @@ const CONTRACT_ABI = [
 		],
 		"stateMutability": "view",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_ipfsHash",
+				"type": "string"
+			}
+		],
+		"name": "registerRepository",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_ipfsHash",
+				"type": "string"
+			},
+			{
+				"internalType": "address",
+				"name": "_collaboratorAddress",
+				"type": "address"
+			}
+		],
+		"name": "removeCollaborator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
 	}
-];
+]
 // ===================================================================================
 
 
