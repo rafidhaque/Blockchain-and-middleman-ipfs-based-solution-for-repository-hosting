@@ -272,17 +272,38 @@ async function submitRepository() {
                 log(`   - Share 2 (user saves): ${shares[1]}`);
                 log(`   - Share 3 (user saves): ${shares[2]}`);
 
+                // // 4. Blockchain Registration
+                // log('4. Registering repository on the blockchain...');
+                // const tx = await contract.registerRepository(ipfsHash);
+                // log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+                // const receipt = await tx.wait();
+                // const confirmationTime = performance.now();
+                // log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+                // log(`   - Gas used: ${receipt.gasUsed.toString()}`);
+                // log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
+                // const totalTime = performance.now() - startTime;
+                // log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+
+
                 // 4. Blockchain Registration
                 log('4. Registering repository on the blockchain...');
                 const tx = await contract.registerRepository(ipfsHash);
+
+                // ---- NEW: Start the pure blockchain timer AFTER user confirms in MetaMask ----
+                const txSentTime = performance.now();
                 log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+
                 const receipt = await tx.wait();
                 const confirmationTime = performance.now();
+
+                // ---- NEW: Calculate and log the pure latency ----
+                const pureBlockchainLatency = confirmationTime - txSentTime;
                 log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
                 log(`   - Gas used: ${receipt.gasUsed.toString()}`);
-                log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
-                const totalTime = performance.now() - startTime;
-                log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+                log(`   - Pure Blockchain Latency: ${pureBlockchainLatency.toFixed(2)} ms.`); // New, clean metric
+
+                // We can keep the old one for comparison or remove it. Let's keep it for now.
+                log(`   - Total confirmation time (incl. human interaction): ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
 
             } catch (error) {
                 log(`🚨 SUBMISSION FAILED (inner): ${error.message}`);
@@ -334,11 +355,13 @@ async function retrieveRepository() {
         const reconstructedIv = CryptoJS.enc.Hex.parse(ivHex);
         log('   - ✅ Key and IV reconstructed successfully.');
 
-        // =================================================================
-        // 3. IPFS Download (REPLACED WITH PUBLIC GATEWAY CALL)
-        // =================================================================
+        // 3. IPFS Download from Public Gateway
         log('3. Downloading encrypted data from a Public IPFS Gateway...');
-        const gatewayUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+        
+        // --- THIS IS THE CORRECTED LINE ---
+        // const gatewayUrl = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`;
+        // Using Pinata's public gateway, which should be accessible.
+        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
         
         const response = await fetch(gatewayUrl);
 
@@ -349,9 +372,6 @@ async function retrieveRepository() {
         const encryptedStringFromIpfs = await response.text();
         const downloadTime = performance.now();
         log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
-        // =================================================================
-        // END OF REPLACED SECTION
-        // =================================================================
         
         // 4. Decryption
         log('4. Decrypting file with Key and IV...');
