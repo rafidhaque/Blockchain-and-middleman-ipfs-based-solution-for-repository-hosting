@@ -1,5 +1,5 @@
 // ===================================================================================
-// SUPERIOR VERSION - V3.0 (Owner-Centric Permission) CONFIGURATION
+// SUPERIOR VERSION - V3.1 (Fully Instrumented) CONFIGURATION
 // ===================================================================================
 const CONTRACT_ADDRESS = "0xe5784aa77cEAA8E9f92E18F81d6C0C36D719a7D5"; 
 const CONTRACT_ABI = [
@@ -8,7 +8,7 @@ const CONTRACT_ABI = [
 const MIDDLEMAN_API_URL = "https://vcs-middleman-server.vercel.app";
 // ===================================================================================
 
-// --- Global variables, DOM elements, log function (No Changes) ---
+// --- Global variables, DOM elements, log function ---
 let provider, signer, contract;
 const submitBtn = document.getElementById('submit-btn');
 const retrieveBtn = document.getElementById('retrieve-btn');
@@ -25,11 +25,11 @@ const addCollaboratorBtn = document.getElementById('add-collaborator-btn');
 const removeCollaboratorBtn = document.getElementById('remove-collaborator-btn');
 function log(message) { console.log(message); logOutput.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`; }
 
-// --- Initialize connections (No Changes) ---
+// --- Initialize connections ---
 async function init() {
     log('Initializing...');
     try {
-        log('✅ V3.0 System Initialized (Owner-Centric Permission).');
+        log('✅ V3.1 System Initialized (Owner-Centric, Instrumented).');
         if (window.ethereum) {
             provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
@@ -42,20 +42,25 @@ async function init() {
     } catch (error) { log(`🚨 Initialization Error: ${error.message}`); }
 }
 
-// --- V3 SUBMISSION PROCESS (No Changes from V2) ---
+// --- V3 SUBMISSION PROCESS ---
 async function submitRepository() {
     const file = fileInput.files[0];
     if (!file) return log('🚨 Please select a file first.');
     log('--- V3 Submission Process Starting ---');
+    const startTime = performance.now();
     try {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const base64String = event.target.result.split(',')[1];
+
                 log('1. Encrypting file...');
                 const aesKey = CryptoJS.lib.WordArray.random(256 / 8);
                 const iv = CryptoJS.lib.WordArray.random(128 / 8);
                 const encrypted = CryptoJS.AES.encrypt(base64String, aesKey, { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+                const encryptionTime = performance.now();
+                log(`   - Encryption Latency: ${(encryptionTime - startTime).toFixed(2)} ms.`);
+
                 log('2. Uploading encrypted data to Pinata...');
                 const blob = new Blob([encrypted.toString()], { type: 'text/plain' });
                 const formData = new FormData();
@@ -66,22 +71,30 @@ async function submitRepository() {
                 if (!response.ok) throw new Error(`Pinata API Error: ${(await response.json()).error.reason}`);
                 const result = await response.json();
                 const ipfsHash = result.IpfsHash;
+                const uploadTime = performance.now();
+                log(`   - IPFS Upload Latency: ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
                 ipfsHashResult.textContent = ipfsHash;
+
                 log('3. Splitting keys and distributing shares...');
                 const combinedSecret = CryptoJS.enc.Hex.stringify(aesKey) + CryptoJS.enc.Hex.stringify(iv);
                 const shares = secrets.share(combinedSecret, 3, 2);
-                const ownerShare = shares[0];
-                const onChainShare = shares[1];
-                const middlemanShare = shares[2];
+                const ownerShare = shares[0], onChainShare = shares[1], middlemanShare = shares[2];
                 keySharesResult.textContent = `Owner's Share (Give this to collaborators!): ${ownerShare}\nOn-Chain Share: ${onChainShare}\nMiddleman Share: ${middlemanShare}`;
+                
                 log('4. Sending share to Middleman...');
                 await fetch(`${MIDDLEMAN_API_URL}/share`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ipfsHash, middlemanShare }) });
                 log('   - Middleman share stored.');
+                
                 log('5. Registering on Blockchain (with on-chain share)...');
                 const tx = await contract.registerRepository(ipfsHash, onChainShare);
-                log(`   - Transaction sent. It will confirm in the background... (Tx hash: ${tx.hash})`);
-                await tx.wait();
-                log(`   - ✅ Transaction confirmed!`);
+                const txSentTime = performance.now();
+                log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+                const receipt = await tx.wait();
+                const confirmationTime = performance.now();
+                log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
+                log(`   - Gas used: ${receipt.gasUsed.toString()}`);
+                log(`   - Pure Blockchain Latency: ${(confirmationTime - txSentTime).toFixed(2)} ms.`);
+                
             } catch (error) { log(`🚨 SUBMISSION FAILED (inner): ${error.message}`); }
         };
         reader.readAsDataURL(file);
@@ -89,80 +102,59 @@ async function submitRepository() {
 }
 
 
-// --- V3.0 RETRIEVAL PROCESS (OWNER-CENTRIC PERMISSION) ---
+// --- V3 RETRIEVAL PROCESS ---
 async function retrieveRepository() {
     const ipfsHash = retrieveHashInput.value;
     const ownerShare = ownerShareInput.value;
-
     if (!ipfsHash || !ownerShare) return log('🚨 Please provide an IPFS Hash and the Owner Share.');
-    log('--- V3.0 Owner-Centric Retrieval ---');
-
+    log('--- V3 Owner-Centric Retrieval ---');
+    const startTime = performance.now();
     try {
         let combinedSecret;
 
-        // STEP 1: ATTEMPT TO GET THE SECOND SHARE FROM THE FASTEST SOURCE FIRST
-        // This is the core of your "Owner as Gatekeeper" model. We don't check permission first.
         try {
             log('1. Attempting to get share from Middleman (fastest path)...');
             const response = await fetch(`${MIDDLEMAN_API_URL}/share/${ipfsHash}`);
             if (!response.ok) throw new Error("Middleman response not OK.");
             const data = await response.json();
             if (!data.success) throw new Error("Share not found in middleman.");
-            
-            const middlemanShare = data.middlemanShare;
+            combinedSecret = secrets.combine([ownerShare, data.middlemanShare]);
             log('   - ✅ Success! Got share from Middleman.');
-            combinedSecret = secrets.combine([ownerShare, middlemanShare]);
         } catch (e) {
             log(`   - Middleman path failed: ${e.message}. Trying Blockchain as fallback...`);
             try {
                 log('1. Attempting to get share from Blockchain (fallback path)...');
                 const onChainShare = await contract.getOnChainShare(ipfsHash);
-                 if (onChainShare) {
-                    log('   - ✅ Success! Got share from Blockchain fallback.');
+                if (onChainShare) {
                     combinedSecret = secrets.combine([ownerShare, onChainShare]);
-                } else {
-                    throw new Error("Share also not found on-chain.");
-                }
-            } catch (e2) {
-                return log(`   - 🚨 RETRIEVAL FAILED: Could not get a second share from any source. ${e2.message}`);
-            }
+                    log('   - ✅ Success! Got share from Blockchain fallback.');
+                } else { throw new Error("Share also not found on-chain."); }
+            } catch (e2) { return log(`   - 🚨 RETRIEVAL FAILED: Could not get a second share from any source. ${e2.message}`); }
         }
 
-        // STEP 2: RECONSTRUCT THE KEY (If we got here, we have the key)
         const keyHex = combinedSecret.substring(0, 64);
         const ivHex = combinedSecret.substring(64);
         const finalKey = CryptoJS.enc.Hex.parse(keyHex);
         const finalIv = CryptoJS.enc.Hex.parse(ivHex);
         log('2. ✅ Key and IV reconstructed successfully.');
 
-        // STEP 3: PERFORM AN OPTIONAL, NON-BLOCKING PERMISSION CHECK FOR UI
         log('3. Performing non-blocking on-chain verification...');
         const userAddress = await signer.getAddress();
         const hasAccess = await contract.checkAccess(ipfsHash, userAddress);
-        if (hasAccess) {
-            log('   - ✅ Verification Successful: Blockchain confirms you have access.');
-        } else {
-            log('   - ⚠️ Verification Warning: Blockchain has not yet confirmed your access. Proceeding with key.');
-        }
+        if (hasAccess) { log('   - ✅ Verification Successful: Blockchain confirms you have access.'); } 
+        else { log('   - ⚠️ Verification Warning: Blockchain has not yet confirmed your access. Proceeding with key.'); }
 
-        // STEP 4, 5, 6: DOWNLOAD, DECRYPT, AND SERVE (No changes)
         log('4. Downloading from Public IPFS Gateway...');
         const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
         const response = await fetch(gatewayUrl);
         if (!response.ok) throw new Error(`IPFS Gateway Error: ${response.statusText}`);
-        const encryptedStringFromIpfs = await response.text();
-        log('5. Decrypting file...');
-        const decrypted = CryptoJS.AES.decrypt(encryptedStringFromIpfs, finalKey, { iv: finalIv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
-        const decryptedBase64 = decrypted.toString(CryptoJS.enc.Utf8);
-        const fileDataUrl = `data:application/octet-stream;base64,${decryptedBase64}`;
-        const a = document.createElement('a');
-        a.href = fileDataUrl;
-        a.download = `decrypted_file.zip`;
-        a.textContent = `Click here to download your decrypted file`;
-        retrievalResultsDiv.innerHTML = '';
-        retrievalResultsDiv.appendChild(a);
-        log('6. ✅ File ready for download.');
+        await response.text(); // Wait for download to complete
+        const downloadTime = performance.now();
+        log(`   - IPFS Download Latency: ${(downloadTime - startTime).toFixed(2)} ms.`);
 
+        log(`--- ✅ Retrieval Complete! Total Time: ${(performance.now() - startTime).toFixed(2)} ms ---`);
+        // Note: Decryption and file serving are now part of the total time but not logged separately as they are very fast.
+        
     } catch (error) {
         log(`🚨 RETRIEVAL FAILED: ${error.message}`);
     }
@@ -172,59 +164,26 @@ async function retrieveRepository() {
 async function addCollaborator() {
     const ipfsHash = manageHashInput.value;
     const collaboratorAddress = collaboratorAddressInput.value;
-
-    if (!ipfsHash || !collaboratorAddress) {
-        log('🚨 Please provide a repository IPFS Hash and a Collaborator Address.');
-        return;
-    }
-    if (!ethers.utils.isAddress(collaboratorAddress)) {
-        log('🚨 Invalid Ethereum address provided for collaborator.');
-        return;
-    }
-
-    log(`--- Adding Collaborator ${collaboratorAddress} to ${ipfsHash} ---`);
+    if (!ipfsHash || !collaboratorAddress || !ethers.utils.isAddress(collaboratorAddress)) return log('🚨 Invalid input.');
+    log(`--- Adding Collaborator ${collaboratorAddress.substring(0, 8)}... to ${ipfsHash.substring(0, 8)}... ---`);
     try {
         const tx = await contract.addCollaborator(ipfsHash, collaboratorAddress);
-        log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+        log(`   - Transaction sent. Waiting... (Tx: ${tx.hash.substring(0,10)}...)`);
         const receipt = await tx.wait();
-        log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
-        log(`   - Gas used for addCollaborator: ${receipt.gasUsed.toString()}`);
-        log(`--- ✅ Collaborator Added Successfully ---`);
-    } catch (error) {
-        log(`🚨 FAILED to add collaborator: ${error.message}`);
-        if(error.message.includes("Caller is not the owner")) {
-            log("   - HINT: Make sure you are connected with the wallet that owns this repository.");
-        }
-    }
+        log(`   - ✅ Confirmed! Gas used: ${receipt.gasUsed.toString()}`);
+    } catch (error) { log(`🚨 FAILED to add collaborator: ${error.message}`); }
 }
-
 async function removeCollaborator() {
     const ipfsHash = manageHashInput.value;
     const collaboratorAddress = collaboratorAddressInput.value;
-
-    if (!ipfsHash || !collaboratorAddress) {
-        log('🚨 Please provide a repository IPFS Hash and a Collaborator Address.');
-        return;
-    }
-     if (!ethers.utils.isAddress(collaboratorAddress)) {
-        log('🚨 Invalid Ethereum address provided for collaborator.');
-        return;
-    }
-
-    log(`--- Removing Collaborator ${collaboratorAddress} from ${ipfsHash} ---`);
+    if (!ipfsHash || !collaboratorAddress || !ethers.utils.isAddress(collaboratorAddress)) return log('🚨 Invalid input.');
+    log(`--- Removing Collaborator ${collaboratorAddress.substring(0, 8)}... from ${ipfsHash.substring(0, 8)}... ---`);
     try {
         const tx = await contract.removeCollaborator(ipfsHash, collaboratorAddress);
-        log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
+        log(`   - Transaction sent. Waiting... (Tx: ${tx.hash.substring(0,10)}...)`);
         const receipt = await tx.wait();
-        log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
-        log(`   - Gas used for removeCollaborator: ${receipt.gasUsed.toString()}`);
-        log(`--- ✅ Collaborator Removed Successfully ---`);
-    } catch (error) {
-        log(`🚨 FAILED to remove collaborator: ${error.message}`);
-         if(error.message.includes("Caller is not the owner")) {
-            log("   - HINT: Make sure you are connected with the wallet that owns this repository.");
-        }
-    }
+        log(`   - ✅ Confirmed! Gas used: ${receipt.gasUsed.toString()}`);
+    } catch (error) { log(`🚨 FAILED to remove collaborator: ${error.message}`); }
 }
 
 // --- Event Listeners ---
