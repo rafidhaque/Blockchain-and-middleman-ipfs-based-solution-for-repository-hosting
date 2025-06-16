@@ -1,390 +1,159 @@
 // ===================================================================================
-// IMPORTANT: CONFIGURE YOUR CONTRACT DETAILS HERE
+// SUPERIOR VERSION - V3.0 (Owner-Centric Permission) CONFIGURATION
 // ===================================================================================
-// 1. Get this from Remix after you deploy your contract
-const CONTRACT_ADDRESS = "0x58f4C4D1589265A552d0b0159Fb9d2c01AC4DfE4"; 
-
-// 2. Get this from the "ABI" button in Remix's compile tab
+const CONTRACT_ADDRESS = "0xe5784aa77cEAA8E9f92E18F81d6C0C36D719a7D5"; 
 const CONTRACT_ABI = [
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "_collaboratorAddress",
-				"type": "address"
-			}
-		],
-		"name": "addCollaborator",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "_userAddress",
-				"type": "address"
-			}
-		],
-		"name": "checkAccess",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "hasAccess",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"name": "owners",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			}
-		],
-		"name": "registerRepository",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "_ipfsHash",
-				"type": "string"
-			},
-			{
-				"internalType": "address",
-				"name": "_collaboratorAddress",
-				"type": "address"
-			}
-		],
-		"name": "removeCollaborator",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	}
-]
+	{ "inputs": [ { "internalType": "string", "name": "_ipfsHash", "type": "string" }, { "internalType": "address", "name": "_collaboratorAddress", "type": "address" } ], "name": "addCollaborator", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "_ipfsHash", "type": "string" }, { "internalType": "address", "name": "_userAddress", "type": "address" } ], "name": "checkAccess", "outputs": [ { "internalType": "bool", "name": "", "type": "bool" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "_ipfsHash", "type": "string" } ], "name": "getOnChainShare", "outputs": [ { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "", "type": "string" }, { "internalType": "address", "name": "", "type": "address" } ], "name": "hasAccess", "outputs": [ { "internalType": "bool", "name": "", "type": "bool" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "", "type": "string" } ], "name": "owners", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "_ipfsHash", "type": "string" }, { "internalType": "string", "name": "_onChainShare", "type": "string" } ], "name": "registerRepository", "outputs": [], "stateMutability": "nonpayable", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "_ipfsHash", "type": "string" }, { "internalType": "address", "name": "_collaboratorAddress", "type": "address" } ], "name": "removeCollaborator", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+];
+const MIDDLEMAN_API_URL = "http://localhost:3000";
 // ===================================================================================
 
-
-// --- Global variables for connections ---
-let provider;
-let signer;
-let contract;
-let ipfs;
-
-// --- DOM elements ---
+// --- Global variables, DOM elements, log function (No Changes) ---
+let provider, signer, contract;
 const submitBtn = document.getElementById('submit-btn');
 const retrieveBtn = document.getElementById('retrieve-btn');
 const fileInput = document.getElementById('file-input');
-const retrieveHashInput = document.getElementById('retrieve-hash-input');
-const share1Input = document.getElementById('share1-input');
-const share2Input = document.getElementById('share2-input');
-const share3Input = document.getElementById('share3-input');
 const ipfsHashResult = document.getElementById('ipfs-hash-result');
 const keySharesResult = document.getElementById('key-shares-result');
 const retrievalResultsDiv = document.getElementById('retrieval-results');
 const logOutput = document.getElementById('log-output');
-
+const retrieveHashInput = document.getElementById('retrieve-hash-input');
+const ownerShareInput = document.getElementById('owner-share-input');
 const manageHashInput = document.getElementById('manage-hash-input');
 const collaboratorAddressInput = document.getElementById('collaborator-address-input');
 const addCollaboratorBtn = document.getElementById('add-collaborator-btn');
 const removeCollaboratorBtn = document.getElementById('remove-collaborator-btn');
+function log(message) { console.log(message); logOutput.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`; }
 
-
-// --- Helper function to log messages to the screen ---
-function log(message) {
-    console.log(message);
-    const time = new Date().toLocaleTimeString();
-    logOutput.textContent += `[${time}] ${message}\n`;
-}
-
-// --- Initialize connections when the script loads ---
+// --- Initialize connections (No Changes) ---
 async function init() {
     log('Initializing...');
     try {
-        // IPFS client is no longer needed for initialization.
-        // We will call gateways directly.
-        log('✅ Ready to use Public IPFS Gateways.');
-
-        // Connect to MetaMask (Ethereum)
+        log('✅ V3.0 System Initialized (Owner-Centric Permission).');
         if (window.ethereum) {
             provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []); // Request wallet connection
+            await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
             const userAddress = await signer.getAddress();
             log(`✅ Connected to MetaMask. Wallet: ${userAddress}`);
-
-            // Connect to the Smart Contract
-            if(CONTRACT_ADDRESS === "YOUR_CONTRACT_ADDRESS_HERE" || CONTRACT_ABI.length === 0) {
-                log("🚨 ERROR: Please set your CONTRACT_ADDRESS and CONTRACT_ABI in app.js!");
-                alert("Please set your CONTRACT_ADDRESS and CONTRACT_ABI in app.js!");
-                return;
-            }
             contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
             log(`✅ Connected to Smart Contract at ${CONTRACT_ADDRESS}`);
-
-        } else {
-            log('🚨 ERROR: MetaMask not found! Please install it.');
-            alert("MetaMask not found! Please install it.");
-        }
-    } catch (error) {
-        log(`🚨 Initialization Error: ${error.message}`);
-        console.error(error);
-    }
+        } else { log('🚨 ERROR: MetaMask not found!'); }
+    } catch (error) { log(`🚨 Initialization Error: ${error.message}`); }
 }
 
-
+// --- V3 SUBMISSION PROCESS (No Changes from V2) ---
 async function submitRepository() {
     const file = fileInput.files[0];
-    if (!file) {
-        log('🚨 Please select a file first.');
-        return;
-    }
-
-    log('--- Starting Submission Process ---');
-    const startTime = performance.now();
-
+    if (!file) return log('🚨 Please select a file first.');
+    log('--- V3 Submission Process Starting ---');
     try {
         const reader = new FileReader();
         reader.onload = async (event) => {
             try {
                 const base64String = event.target.result.split(',')[1];
-
-                // 1. Client-Side Encryption
-                log('1. Encrypting file with Key and IV...');
+                log('1. Encrypting file...');
                 const aesKey = CryptoJS.lib.WordArray.random(256 / 8);
                 const iv = CryptoJS.lib.WordArray.random(128 / 8);
-                const encrypted = CryptoJS.AES.encrypt(base64String, aesKey, {
-                    iv: iv,
-                    mode: CryptoJS.mode.CBC,
-                    padding: CryptoJS.pad.Pkcs7
-                });
-                const encryptionTime = performance.now();
-                log(`   - Encryption took ${(encryptionTime - startTime).toFixed(2)} ms.`);
-
-                // =================================================================
-                // 2. IPFS Upload (REPLACED WITH DIRECT PINATA API CALL)
-                // =================================================================
+                const encrypted = CryptoJS.AES.encrypt(base64String, aesKey, { iv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
                 log('2. Uploading encrypted data to Pinata...');
-                const encryptedStringForIpfs = encrypted.toString();
-                
-                const blob = new Blob([encryptedStringForIpfs], { type: 'text/plain' });
+                const blob = new Blob([encrypted.toString()], { type: 'text/plain' });
                 const formData = new FormData();
                 formData.append('file', blob, 'encrypted-repo.txt');
-                
-                const PINATA_API_KEY = '642e512ba111118fc498';
-                const PINATA_API_SECRET = 'a00e4fa9f19c6c798edca8efa6f1b2dba3829e9af176ed58cf94a3d7bd992e38';
-
-                const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-                    method: "POST",
-                    headers: {
-                        'pinata_api_key': PINATA_API_KEY,
-                        'pinata_secret_api_key': PINATA_API_SECRET
-                    },
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Pinata API Error: ${errorData.error.reason || response.statusText}`);
-                }
-
+                const PINATA_API_KEY = '642e512ba111118fc498'; // Replace later
+                const PINATA_API_SECRET = 'a00e4fa9f19c6c798edca8efa6f1b2dba3829e9af176ed58cf94a3d7bd992e38'; // Replace later
+                const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", { method: "POST", headers: { 'pinata_api_key': PINATA_API_KEY, 'pinata_secret_api_key': PINATA_API_SECRET }, body: formData });
+                if (!response.ok) throw new Error(`Pinata API Error: ${(await response.json()).error.reason}`);
                 const result = await response.json();
                 const ipfsHash = result.IpfsHash;
-                // =================================================================
-                // END OF REPLACED SECTION
-                // =================================================================
-                
-                const uploadTime = performance.now();
-                log(`   - IPFS upload took ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
-                log(`   - Client-Side Processing Latency ${((encryptionTime - startTime) + (uploadTime - encryptionTime)).toFixed(2)} ms.`);
-                log(`   - IPFS Hash (CID): ${ipfsHash}`);
                 ipfsHashResult.textContent = ipfsHash;
-
-                // 3. Key & IV Bundling and Splitting
-                log('3. Bundling Key+IV and splitting into shares...');
-                const keyHex = CryptoJS.enc.Hex.stringify(aesKey);
-                const ivHex = CryptoJS.enc.Hex.stringify(iv);
-                const combinedSecret = keyHex + ivHex;
+                log('3. Splitting keys and distributing shares...');
+                const combinedSecret = CryptoJS.enc.Hex.stringify(aesKey) + CryptoJS.enc.Hex.stringify(iv);
                 const shares = secrets.share(combinedSecret, 3, 2);
-                keySharesResult.textContent = `Share 1: ${shares[0]}\nShare 2: ${shares[1]}\nShare 3: ${shares[2]}`;
-                log(`   - Share 1 (for 'middleman'): ${shares[0]}`);
-                log(`   - Share 2 (user saves): ${shares[1]}`);
-                log(`   - Share 3 (user saves): ${shares[2]}`);
-
-                // // 4. Blockchain Registration
-                // log('4. Registering repository on the blockchain...');
-                // const tx = await contract.registerRepository(ipfsHash);
-                // log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
-                // const receipt = await tx.wait();
-                // const confirmationTime = performance.now();
-                // log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
-                // log(`   - Gas used: ${receipt.gasUsed.toString()}`);
-                // log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
-                // const totalTime = performance.now() - startTime;
-                // log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
-
-
-                // 4. Blockchain Registration
-                log('4. Registering repository on the blockchain...');
-                const tx = await contract.registerRepository(ipfsHash);
-
-                // ---- NEW: Start the pure blockchain timer AFTER user confirms in MetaMask ----
-                const txSentTime = performance.now();
-                log(`   - Transaction sent. Waiting for confirmation... (Tx hash: ${tx.hash})`);
-
-                const receipt = await tx.wait();
-                const confirmationTime = performance.now();
-
-                // ---- NEW: Calculate and log the pure latency ----
-                const pureBlockchainLatency = confirmationTime - txSentTime;
-                log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
-                log(`   - Gas used: ${receipt.gasUsed.toString()}`);
-                log(`   - Pure Blockchain Latency: ${pureBlockchainLatency.toFixed(2)} ms.`); // New, clean metric
-
-                // We can keep the old one for comparison or remove it. Let's keep it for now.
-                log(`   - Total confirmation time (incl. human interaction): ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
-
-            } catch (error) {
-                log(`🚨 SUBMISSION FAILED (inner): ${error.message}`);
-                console.error(error);
-            }
-        };
-        reader.onerror = (error) => {
-            log(`🚨 FILE READ FAILED: ${error}`);
-            console.error(error);
+                const ownerShare = shares[0];
+                const onChainShare = shares[1];
+                const middlemanShare = shares[2];
+                keySharesResult.textContent = `Owner's Share (Give this to collaborators!): ${ownerShare}\nOn-Chain Share: ${onChainShare}\nMiddleman Share: ${middlemanShare}`;
+                log('4. Sending share to Middleman...');
+                await fetch(`${MIDDLEMAN_API_URL}/share`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ipfsHash, middlemanShare }) });
+                log('   - Middleman share stored.');
+                log('5. Registering on Blockchain (with on-chain share)...');
+                const tx = await contract.registerRepository(ipfsHash, onChainShare);
+                log(`   - Transaction sent. It will confirm in the background... (Tx hash: ${tx.hash})`);
+                await tx.wait();
+                log(`   - ✅ Transaction confirmed!`);
+            } catch (error) { log(`🚨 SUBMISSION FAILED (inner): ${error.message}`); }
         };
         reader.readAsDataURL(file);
-
-    } catch (error) {
-        log(`🚨 SUBMISSION FAILED (outer): ${error.message}`);
-        console.error(error);
-    }
+    } catch (error) { log(`🚨 SUBMISSION FAILED (outer): ${error.message}`); }
 }
 
-// --- 3.4 Repository Retrieval Process ---
+
+// --- V3.0 RETRIEVAL PROCESS (OWNER-CENTRIC PERMISSION) ---
 async function retrieveRepository() {
     const ipfsHash = retrieveHashInput.value;
-    const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s.trim() !== "");
+    const ownerShare = ownerShareInput.value;
 
-    if (!ipfsHash || shares.length < 2) {
-        log('🚨 Please provide an IPFS Hash and at least 2 key shares.');
-        return;
-    }
-
-    log('--- Starting Retrieval Process ---');
-    const startTime = performance.now();
+    if (!ipfsHash || !ownerShare) return log('🚨 Please provide an IPFS Hash and the Owner Share.');
+    log('--- V3.0 Owner-Centric Retrieval ---');
 
     try {
-        // 1. Permission Verification
-        log('1. Verifying access permission on the blockchain...');
-        const userAddress = await signer.getAddress();
-        const hasAccess = await contract.checkAccess(ipfsHash, userAddress);
-        if (!hasAccess) {
-            log('🚨 ACCESS DENIED: Your address does not have permission for this repository.');
-            return;
+        let combinedSecret;
+
+        // STEP 1: ATTEMPT TO GET THE SECOND SHARE FROM THE FASTEST SOURCE FIRST
+        // This is the core of your "Owner as Gatekeeper" model. We don't check permission first.
+        try {
+            log('1. Attempting to get share from Middleman (fastest path)...');
+            const response = await fetch(`${MIDDLEMAN_API_URL}/share/${ipfsHash}`);
+            if (!response.ok) throw new Error("Middleman response not OK.");
+            const data = await response.json();
+            if (!data.success) throw new Error("Share not found in middleman.");
+            
+            const middlemanShare = data.middlemanShare;
+            log('   - ✅ Success! Got share from Middleman.');
+            combinedSecret = secrets.combine([ownerShare, middlemanShare]);
+        } catch (e) {
+            log(`   - Middleman path failed: ${e.message}. Trying Blockchain as fallback...`);
+            try {
+                log('1. Attempting to get share from Blockchain (fallback path)...');
+                const onChainShare = await contract.getOnChainShare(ipfsHash);
+                 if (onChainShare) {
+                    log('   - ✅ Success! Got share from Blockchain fallback.');
+                    combinedSecret = secrets.combine([ownerShare, onChainShare]);
+                } else {
+                    throw new Error("Share also not found on-chain.");
+                }
+            } catch (e2) {
+                return log(`   - 🚨 RETRIEVAL FAILED: Could not get a second share from any source. ${e2.message}`);
+            }
         }
-        log('   - ✅ Access granted.');
-        
-        // 2. Key & IV Reconstruction
-        log('2. Reconstructing and un-bundling Key and IV...');
-        const combinedSecret = secrets.combine(shares);
+
+        // STEP 2: RECONSTRUCT THE KEY (If we got here, we have the key)
         const keyHex = combinedSecret.substring(0, 64);
         const ivHex = combinedSecret.substring(64);
-        const reconstructedKey = CryptoJS.enc.Hex.parse(keyHex);
-        const reconstructedIv = CryptoJS.enc.Hex.parse(ivHex);
-        log('   - ✅ Key and IV reconstructed successfully.');
+        const finalKey = CryptoJS.enc.Hex.parse(keyHex);
+        const finalIv = CryptoJS.enc.Hex.parse(ivHex);
+        log('2. ✅ Key and IV reconstructed successfully.');
 
-        // 3. IPFS Download from Public Gateway
-        log('3. Downloading encrypted data from a Public IPFS Gateway...');
-        
-        // --- THIS IS THE CORRECTED LINE ---
-        // const gatewayUrl = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`;
-        // Using Pinata's public gateway, which should be accessible.
-        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
-        
-        const response = await fetch(gatewayUrl);
-
-        if (!response.ok) {
-            throw new Error(`IPFS Gateway Error: ${response.statusText}`);
+        // STEP 3: PERFORM AN OPTIONAL, NON-BLOCKING PERMISSION CHECK FOR UI
+        log('3. Performing non-blocking on-chain verification...');
+        const userAddress = await signer.getAddress();
+        const hasAccess = await contract.checkAccess(ipfsHash, userAddress);
+        if (hasAccess) {
+            log('   - ✅ Verification Successful: Blockchain confirms you have access.');
+        } else {
+            log('   - ⚠️ Verification Warning: Blockchain has not yet confirmed your access. Proceeding with key.');
         }
-        
-        const encryptedStringFromIpfs = await response.text();
-        const downloadTime = performance.now();
-        log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
-        
-        // 4. Decryption
-        log('4. Decrypting file with Key and IV...');
-        const decrypted = CryptoJS.AES.decrypt(encryptedStringFromIpfs, reconstructedKey, {
-            iv: reconstructedIv,
-            mode: CryptoJS.mode.CBC,
-            padding: CryptoJS.pad.Pkcs7
-        });
-        const decryptedBase64 = decrypted.toString(CryptoJS.enc.Utf8);
-        const decryptionTime = performance.now();
-        log(`   - Decryption took ${(decryptionTime - downloadTime).toFixed(2)} ms.`);
 
-        // 5. Serve file for download
+        // STEP 4, 5, 6: DOWNLOAD, DECRYPT, AND SERVE (No changes)
+        log('4. Downloading from Public IPFS Gateway...');
+        const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+        const response = await fetch(gatewayUrl);
+        if (!response.ok) throw new Error(`IPFS Gateway Error: ${response.statusText}`);
+        const encryptedStringFromIpfs = await response.text();
+        log('5. Decrypting file...');
+        const decrypted = CryptoJS.AES.decrypt(encryptedStringFromIpfs, finalKey, { iv: finalIv, mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 });
+        const decryptedBase64 = decrypted.toString(CryptoJS.enc.Utf8);
         const fileDataUrl = `data:application/octet-stream;base64,${decryptedBase64}`;
         const a = document.createElement('a');
         a.href = fileDataUrl;
@@ -392,19 +161,10 @@ async function retrieveRepository() {
         a.textContent = `Click here to download your decrypted file`;
         retrievalResultsDiv.innerHTML = '';
         retrievalResultsDiv.appendChild(a);
-        log('   - ✅ File decrypted. Download link created.');
-
-        const totalTime = performance.now() - startTime;
-        log(`--- ✅ Retrieval Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+        log('6. ✅ File ready for download.');
 
     } catch (error) {
         log(`🚨 RETRIEVAL FAILED: ${error.message}`);
-        console.error(error);
-        if (error.message.includes("Invalid share")) {
-             log("   - HINT: This often means the key shares are incorrect or in the wrong order.")
-        } else if (error.message.includes("Malformed UTF-8 data")) {
-             log("   - HINT: This often means the reconstructed key/IV is wrong (wrong shares?).")
-        }
     }
 }
 

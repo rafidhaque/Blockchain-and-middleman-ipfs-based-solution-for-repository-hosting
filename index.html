@@ -8,8 +8,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Decentralized Version Control Prototype</h1>
-        <p>Connect your MetaMask wallet (to the local Ganache network) to begin.</p>
+        <h1>Decentralized Version Control Prototype - V2</h1>
+        <p>Connect your MetaMask wallet (to the Sepolia network) to begin.</p>
         
         <!-- Submission Section -->
         <div class="card">
@@ -20,24 +20,27 @@
             <div id="submission-results" class="results">
                 <h4>Results:</h4>
                 <p><strong>IPFS Hash (CID):</strong> <span id="ipfs-hash-result"></span></p>
-                <p><strong>Key Shares (Save these securely!):</strong></p>
+                <p><strong>Key Shares (Save the Owner's Share!):</strong></p>
                 <pre id="key-shares-result"></pre>
             </div>
         </div>
 
-        <!-- Retrieval Section -->
+        <!-- ======================================================== -->
+        <!-- THIS IS THE ONLY SECTION THAT HAS CHANGED -->
+        <!-- ======================================================== -->
         <div class="card">
             <h2>2. Retrieve Repository</h2>
-            <p>Provide the IPFS Hash and your key shares to download and decrypt the file.</p>
+            <p>Provide the IPFS Hash and your primary share to download the file.</p>
             <input type="text" id="retrieve-hash-input" placeholder="Enter IPFS Hash (CID)">
-            <input type="text" id="share1-input" placeholder="Enter Key Share 1 (from 'middleman')">
-            <input type="text" id="share2-input" placeholder="Enter Key Share 2 (your saved share)">
-            <input type="text" id="share3-input" placeholder="Enter Key Share 3 (your saved share)">
+            <input type="text" id="owner-share-input" placeholder="Enter Your Primary Owner's Share">
             <button id="retrieve-btn">Retrieve File</button>
              <div id="retrieval-results" class="results">
                 <!-- Download link will appear here -->
             </div>
         </div>
+        <!-- ======================================================== -->
+        <!-- END OF CHANGED SECTION -->
+        <!-- ======================================================== -->
 
         <!-- Access Management Section -->
         <div class="card">
@@ -58,9 +61,8 @@
         </div>
     </div>
 
-<!-- JAVASCRIPT LIBRARIES (LOCAL) -->
+    <!-- JAVASCRIPT LIBRARIES -->
     <script src="libs/ethers.js"></script>
-    <!-- <script src="libs/ipfs-http-client.js"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
     <script src="libs/secrets.js"></script>
     
