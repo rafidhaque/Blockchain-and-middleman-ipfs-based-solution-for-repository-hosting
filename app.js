@@ -162,22 +162,9 @@ function log(message) {
 async function init() {
     log('Initializing...');
     try {
-        // --- THIS SECTION IS UPDATED TO USE PINATA ---
-        // --- Connect to Public IPFS via Pinata ---
-        const PINATA_API_KEY = '642e512ba111118fc498';
-        const PINATA_API_SECRET = 'a00e4fa9f19c6c798edca8efa6f1b2dba3829e9af176ed58cf94a3d7bd992e38';
-        const auth = 'Basic ' + btoa(PINATA_API_KEY + ':' + PINATA_API_SECRET);
-
-        ipfs = IpfsHttpClient.create({
-            host: 'api.pinata.cloud', // Use the Pinata API host
-            port: 443,               // Use the standard HTTPS port
-            protocol: 'https',
-            headers: {
-                authorization: auth
-            }
-        });
-        log('✅ Connected to Public IPFS (Pinata).');
-        // --- END OF UPDATED SECTION ---
+        // IPFS client is no longer needed for initialization.
+        // We will call gateways directly.
+        log('✅ Ready to use Public IPFS Gateways.');
 
         // Connect to MetaMask (Ethereum)
         if (window.ethereum) {
@@ -341,26 +328,32 @@ async function retrieveRepository() {
         // 2. Key & IV Reconstruction
         log('2. Reconstructing and un-bundling Key and IV...');
         const combinedSecret = secrets.combine(shares);
-        
-        // SPLIT THE RECONSTRUCTED SECRET BACK INTO KEY AND IV
-        const keyHex = combinedSecret.substring(0, 64); // First 64 chars are the 32-byte key
-        const ivHex = combinedSecret.substring(64);      // The rest is the 16-byte IV
-        
+        const keyHex = combinedSecret.substring(0, 64);
+        const ivHex = combinedSecret.substring(64);
         const reconstructedKey = CryptoJS.enc.Hex.parse(keyHex);
         const reconstructedIv = CryptoJS.enc.Hex.parse(ivHex);
         log('   - ✅ Key and IV reconstructed successfully.');
 
-        // 3. IPFS Download
-        log('3. Downloading encrypted data from IPFS...');
-        const chunks = [];
-        for await (const chunk of ipfs.cat(ipfsHash)) {
-            chunks.push(chunk);
+        // =================================================================
+        // 3. IPFS Download (REPLACED WITH PUBLIC GATEWAY CALL)
+        // =================================================================
+        log('3. Downloading encrypted data from a Public IPFS Gateway...');
+        const gatewayUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+        
+        const response = await fetch(gatewayUrl);
+
+        if (!response.ok) {
+            throw new Error(`IPFS Gateway Error: ${response.statusText}`);
         }
-        const encryptedStringFromIpfs = new TextDecoder().decode(chunks[0]);
+        
+        const encryptedStringFromIpfs = await response.text();
         const downloadTime = performance.now();
         log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
-
-        // 4. Decryption (Correctly Implemented)
+        // =================================================================
+        // END OF REPLACED SECTION
+        // =================================================================
+        
+        // 4. Decryption
         log('4. Decrypting file with Key and IV...');
         const decrypted = CryptoJS.AES.decrypt(encryptedStringFromIpfs, reconstructedKey, {
             iv: reconstructedIv,
@@ -389,8 +382,7 @@ async function retrieveRepository() {
         console.error(error);
         if (error.message.includes("Invalid share")) {
              log("   - HINT: This often means the key shares are incorrect or in the wrong order.")
-        }
-         if (error.message.includes("Malformed UTF-8 data")) {
+        } else if (error.message.includes("Malformed UTF-8 data")) {
              log("   - HINT: This often means the reconstructed key/IV is wrong (wrong shares?).")
         }
     }
