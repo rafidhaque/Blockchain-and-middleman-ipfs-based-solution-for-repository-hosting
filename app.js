@@ -2,7 +2,7 @@
 // IMPORTANT: CONFIGURE YOUR CONTRACT DETAILS HERE
 // ===================================================================================
 // 1. Get this from Remix after you deploy your contract
-const CONTRACT_ADDRESS = "0xf81Fc96Cb1F7Ae469077dA4C27cA30ebf9884d4F"; 
+const CONTRACT_ADDRESS = "0x58f4C4D1589265A552d0b0159Fb9d2c01AC4DfE4"; 
 
 // 2. Get this from the "ABI" button in Remix's compile tab
 const CONTRACT_ABI = [
@@ -162,10 +162,22 @@ function log(message) {
 async function init() {
     log('Initializing...');
     try {
-        // Connect to IPFS
-        // CORRECTED: Use the variable name "IpfsHttpClient" (capital I)
-        ipfs = IpfsHttpClient.create({ host: 'localhost', port: '5001', protocol: 'http' });
-        log('✅ Connected to local IPFS node.');
+        // --- THIS SECTION IS UPDATED TO USE PINATA ---
+        // --- Connect to Public IPFS via Pinata ---
+        const PINATA_API_KEY = '642e512ba111118fc498';
+        const PINATA_API_SECRET = 'a00e4fa9f19c6c798edca8efa6f1b2dba3829e9af176ed58cf94a3d7bd992e38';
+        const auth = 'Basic ' + btoa(PINATA_API_KEY + ':' + PINATA_API_SECRET);
+
+        ipfs = IpfsHttpClient.create({
+            host: 'api.pinata.cloud', // Use the Pinata API host
+            port: 443,               // Use the standard HTTPS port
+            protocol: 'https',
+            headers: {
+                authorization: auth
+            }
+        });
+        log('✅ Connected to Public IPFS (Pinata).');
+        // --- END OF UPDATED SECTION ---
 
         // Connect to MetaMask (Ethereum)
         if (window.ethereum) {
@@ -194,9 +206,7 @@ async function init() {
     }
 }
 
-// --- 3.3 Repository Submission Process (DIAGNOSTIC VERSION) ---
-// --- 3.3 Repository Submission Process (FINAL CLEAN VERSION) ---
-// --- 3.3 Repository Submission Process (CORRECT IMPLEMENTATION) ---
+
 async function submitRepository() {
     const file = fileInput.files[0];
     if (!file) {
@@ -213,11 +223,10 @@ async function submitRepository() {
             try {
                 const base64String = event.target.result.split(',')[1];
 
-                // 1. Client-Side Encryption (Correctly Implemented)
+                // 1. Client-Side Encryption
                 log('1. Encrypting file with Key and IV...');
-                const aesKey = CryptoJS.lib.WordArray.random(256 / 8); // 32 bytes
-                const iv = CryptoJS.lib.WordArray.random(128 / 8);     // 16 bytes
-                
+                const aesKey = CryptoJS.lib.WordArray.random(256 / 8);
+                const iv = CryptoJS.lib.WordArray.random(128 / 8);
                 const encrypted = CryptoJS.AES.encrypt(base64String, aesKey, {
                     iv: iv,
                     mode: CryptoJS.mode.CBC,
@@ -226,11 +235,39 @@ async function submitRepository() {
                 const encryptionTime = performance.now();
                 log(`   - Encryption took ${(encryptionTime - startTime).toFixed(2)} ms.`);
 
-                // 2. IPFS Upload
-                log('2. Uploading encrypted data to IPFS...');
+                // =================================================================
+                // 2. IPFS Upload (REPLACED WITH DIRECT PINATA API CALL)
+                // =================================================================
+                log('2. Uploading encrypted data to Pinata...');
                 const encryptedStringForIpfs = encrypted.toString();
-                const { cid } = await ipfs.add(encryptedStringForIpfs);
-                const ipfsHash = cid.toString();
+                
+                const blob = new Blob([encryptedStringForIpfs], { type: 'text/plain' });
+                const formData = new FormData();
+                formData.append('file', blob, 'encrypted-repo.txt');
+                
+                const PINATA_API_KEY = '642e512ba111118fc498';
+                const PINATA_API_SECRET = 'a00e4fa9f19c6c798edca8efa6f1b2dba3829e9af176ed58cf94a3d7bd992e38';
+
+                const response = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                    method: "POST",
+                    headers: {
+                        'pinata_api_key': PINATA_API_KEY,
+                        'pinata_secret_api_key': PINATA_API_SECRET
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Pinata API Error: ${errorData.error.reason || response.statusText}`);
+                }
+
+                const result = await response.json();
+                const ipfsHash = result.IpfsHash;
+                // =================================================================
+                // END OF REPLACED SECTION
+                // =================================================================
+                
                 const uploadTime = performance.now();
                 log(`   - IPFS upload took ${(uploadTime - encryptionTime).toFixed(2)} ms.`);
                 log(`   - Client-Side Processing Latency ${((encryptionTime - startTime) + (uploadTime - encryptionTime)).toFixed(2)} ms.`);
@@ -241,11 +278,8 @@ async function submitRepository() {
                 log('3. Bundling Key+IV and splitting into shares...');
                 const keyHex = CryptoJS.enc.Hex.stringify(aesKey);
                 const ivHex = CryptoJS.enc.Hex.stringify(iv);
-                
-                // BUNDLE THE KEY AND IV TOGETHER INTO ONE SECRET
                 const combinedSecret = keyHex + ivHex;
-                
-                const shares = secrets.share(combinedSecret, 3, 2); // Split the combined secret
+                const shares = secrets.share(combinedSecret, 3, 2);
                 keySharesResult.textContent = `Share 1: ${shares[0]}\nShare 2: ${shares[1]}\nShare 3: ${shares[2]}`;
                 log(`   - Share 1 (for 'middleman'): ${shares[0]}`);
                 log(`   - Share 2 (user saves): ${shares[1]}`);
@@ -260,9 +294,9 @@ async function submitRepository() {
                 log(`   - ✅ Transaction confirmed! Block: ${receipt.blockNumber}`);
                 log(`   - Gas used: ${receipt.gasUsed.toString()}`);
                 log(`   - Blockchain confirmation took ${(confirmationTime - uploadTime).toFixed(2)} ms.`);
-
                 const totalTime = performance.now() - startTime;
                 log(`--- ✅ Submission Complete! Total time: ${totalTime.toFixed(2)} ms ---`);
+
             } catch (error) {
                 log(`🚨 SUBMISSION FAILED (inner): ${error.message}`);
                 console.error(error);
@@ -280,9 +314,7 @@ async function submitRepository() {
     }
 }
 
-// --- 3.4 Repository Retrieval Process (FINAL CORRECTED VERSION) ---
-// --- 3.4 Repository Retrieval Process (FINAL CLEAN VERSION) ---
-// --- 3.4 Repository Retrieval Process (CORRECT IMPLEMENTATION) ---
+// --- 3.4 Repository Retrieval Process ---
 async function retrieveRepository() {
     const ipfsHash = retrieveHashInput.value;
     const shares = [share1Input.value, share2Input.value, share3Input.value].filter(s => s.trim() !== "");
@@ -324,7 +356,6 @@ async function retrieveRepository() {
         for await (const chunk of ipfs.cat(ipfsHash)) {
             chunks.push(chunk);
         }
-        // const encryptedStringFromIpfs = Buffer.from(chunks[0]).toString('utf8');
         const encryptedStringFromIpfs = new TextDecoder().decode(chunks[0]);
         const downloadTime = performance.now();
         log(`   - Download took ${(downloadTime - startTime).toFixed(2)} ms.`);
