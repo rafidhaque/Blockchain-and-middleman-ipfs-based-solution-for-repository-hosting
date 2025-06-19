@@ -1,18 +1,14 @@
-// A simple in-memory middleman server
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
-app.use(express.json()); // Middleware to parse JSON bodies
-app.use(cors()); // Middleware to allow cross-origin requests from our dApp
+app.use(express.json());
+app.use(cors());
 
-// In-memory database. In a real system, you'd use Redis or another DB.
-// For our experiment, this is perfect.
-const shareStore = {}; // e.g., { "QmHash123": "keyShareABC" }
+const shareStore = {};
 
-const PORT = 3000; // We'll run this on localhost:3000
+const PORT = 3000;
 
-// Endpoint to store a share
 app.post('/share', (req, res) => {
     const { ipfsHash, middlemanShare } = req.body;
 
@@ -25,7 +21,6 @@ app.post('/share', (req, res) => {
     res.status(200).json({ success: true, message: `Share for ${ipfsHash} stored.` });
 });
 
-// Endpoint to retrieve a share
 app.get('/share/:ipfsHash', (req, res) => {
     const { ipfsHash } = req.params;
     const share = shareStore[ipfsHash];

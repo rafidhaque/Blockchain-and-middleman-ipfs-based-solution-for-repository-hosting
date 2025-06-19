@@ -67,11 +67,11 @@ pre {
 
 .button-group {
     display: flex;
-    gap: 10px; /* Adds space between the buttons */
+    gap: 10px;
 }
 
 .danger {
-    background-color: #e74c3c; /* A red color for dangerous actions */
+    background-color: #e74c3c;
 }
 
 .danger:hover {

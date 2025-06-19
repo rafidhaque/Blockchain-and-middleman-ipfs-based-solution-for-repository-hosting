@@ -11,7 +11,6 @@
         <h1>Decentralized Version Control Prototype - V2</h1>
         <p>Connect your MetaMask wallet (to the Sepolia network) to begin.</p>
         
-        <!-- Submission Section -->
         <div class="card">
             <h2>1. Submit Repository</h2>
             <p>Select a file, encrypt it, upload it to IPFS, and register it on the blockchain.</p>
@@ -25,9 +24,6 @@
             </div>
         </div>
 
-        <!-- ======================================================== -->
-        <!-- THIS IS THE ONLY SECTION THAT HAS CHANGED -->
-        <!-- ======================================================== -->
         <div class="card">
             <h2>2. Retrieve Repository</h2>
             <p>Provide the IPFS Hash and your primary share to download the file.</p>
@@ -35,14 +31,9 @@
             <input type="text" id="owner-share-input" placeholder="Enter Your Primary Owner's Share">
             <button id="retrieve-btn">Retrieve File</button>
              <div id="retrieval-results" class="results">
-                <!-- Download link will appear here -->
-            </div>
+             </div>
         </div>
-        <!-- ======================================================== -->
-        <!-- END OF CHANGED SECTION -->
-        <!-- ======================================================== -->
 
-        <!-- Access Management Section -->
         <div class="card">
             <h2>3. Manage Collaborators</h2>
             <p>Grant or revoke access for other Ethereum addresses. You must be the owner of the repository.</p>
@@ -54,19 +45,16 @@
             </div>
         </div>
 
-        <!-- Benchmarking Log Section -->
         <div class="card">
             <h2>Experiment Log</h2>
             <pre id="log-output"></pre>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LIBRARIES -->
     <script src="libs/ethers.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
     <script src="libs/secrets.js"></script>
     
-    <!-- YOUR APPLICATION LOGIC -->
     <script src="app.js"></script>
 </body>
 </html>
