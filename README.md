@@ -22,16 +22,16 @@ The system consists of three main components that work in concert:
 
 ## Repository Contents
 
-*   `/dapp`: Contains the client-side application (`index.html`, `style.css`, `app.js`) and its required libraries.
+*   `/`: Contains the client-side application (`index.html`, `style.css`, `app.js`) and its required libraries.
 *   `/middleman-server`: Contains the Node.js source code (`server.js`) and configuration files (`package.json`, `vercel.json`) for the Vercel-deployed middleware.
-*   `/smart-contract`: Contains the final Solidity smart contract code (`VersionControlV2.sol`).
+*   `/`: Contains the final Solidity smart contract code (`VersionControl.sol`).
 
 ## Setup and Usage for Replication
 
 To replicate the experiments described in the paper, please follow the steps outlined in the `Environment Setup and Implementation` section of the manuscript. The key steps involve:
-1.  Deploying the `VersionControlV2.sol` contract to an Ethereum network (e.g., Sepolia testnet).
-2.  Deploying the `middleman-server` code to a serverless platform like Vercel.
-3.  Updating the contract address and middleman URL in `dapp/app.js`.
+1.  Deploying the `VersionControl.sol` contract to an Ethereum network (e.g., Sepolia testnet).
+2.  Deploying the `middleman-server` code to a serverless platform.
+3.  Updating the contract address and middleman URL in `app.js`.
 4.  Running the dApp from a local web server.
 
 ## Citing This Work
